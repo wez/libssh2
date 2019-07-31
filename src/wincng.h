@@ -99,6 +99,7 @@ struct _libssh2_wincng_ctx {
     BCRYPT_ALG_HANDLE hAlgAES_ECB;
     BCRYPT_ALG_HANDLE hAlgRC4_NA;
     BCRYPT_ALG_HANDLE hAlg3DES_CBC;
+    BCRYPT_ALG_HANDLE hAlgDH;
 };
 
 struct _libssh2_wincng_ctx _libssh2_wincng;
@@ -383,8 +384,22 @@ _libssh2_bn *_libssh2_wincng_bignum_init(void);
 /*
  * Windows CNG backend: Diffie-Hellman support
  */
+#ifdef BCRYPT_KDF_RAW_SECRET
+// BCRYPT_KDF_RAW_SECRET is available from Windows 8.1 and onwards
+#define LIBSSH2_USE_BCRYPT_DH 1
+#endif
 
+#if LIBSSH2_USE_BCRYPT_DH
+typedef struct {
+  // holds our private+public key components
+  BCRYPT_KEY_HANDLE dh_handle;
+  // records the parsed out modulus and generator parameters
+  // that are shared with the peer
+  BCRYPT_DH_PARAMETER_HEADER *dh_params;
+} _libssh2_dh_ctx;
+#else
 #define _libssh2_dh_ctx struct _libssh2_wincng_bignum *
+#endif
 #define libssh2_dh_init(dhctx) _libssh2_dh_init(dhctx)
 #define libssh2_dh_key_pair(dhctx, public, g, p, group_order, bnctx) \
         _libssh2_dh_key_pair(dhctx, public, g, p, group_order)
